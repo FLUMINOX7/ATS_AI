@@ -176,3 +176,56 @@ backend/
 Voir la roadmap complète (phases 1 à 10). Chaque route de `routes/` et
 chaque module de `services/` contient un commentaire `TODO` indiquant la
 phase concernée et les signatures de fonctions prévues.
+
+## Pipeline IA (RAG Pipeline + ATS IA Engine) — implémenté
+
+Le pipeline suit la spec fournie, en 4 étapes (composant **RAG Pipeline**)
+puis le ranking (composant **ATS IA Engine**) :
+
+| Étape | Fichier                              | Rôle                                                        |
+|-------|--------------------------------------|-------------------------------------------------------------|
+| 1     | `services/rag_pipeline/extraction.py`| CV PDF → texte (PyMuPDF)                                     |
+| 2     | `services/rag_pipeline/chunking.py`  | texte → chunks par section (regex de titres FR/EN)          |
+| 3     | `services/rag_pipeline/embeddings.py`| chunk → vecteur (`sentence-transformers/all-MiniLM-L6-v2`)  |
+| 4     | `services/rag_pipeline/vector_store.py`| stockage `{id candidat, section_type, vecteur}` dans FAISS |
+| 7     | `services/ats_engine/__init__.py`    | requête → similarité cosinus → top-k → ranking par candidat |
+
+Le ranking final donne, pour chaque candidat, un score = **moyenne des
+similarités** de ses chunks retenus (exactement la formule de la spec).
+
+### Essai rapide
+
+```bash
+# Démo sur les 3 vrais CV de mock_data/cvs/ (télécharge le modèle au 1er lancement) :
+python scripts/demo_pipeline.py --query "Je cherche un data engineer avec Python et Docker"
+
+# Version hors-ligne (embedder factice, pour tester la mécanique sans réseau) :
+python scripts/demo_pipeline.py --fake
+```
+
+### Pour vos collaborateurs
+
+L'API publique est exposée dans `services/rag_pipeline/__init__.py` :
+
+```python
+from services.rag_pipeline import FaissVectorStore, index_cv, get_embedder
+from services.ats_engine import search_candidates, match_offer_candidates
+
+store = FaissVectorStore(dim=get_embedder().dim)
+index_cv("candidat_42", store, pdf_bytes=cv_pdf_bytes)   # ou pdf_path=..., ou text=...
+resultats = search_candidates("data engineer python docker", store)
+```
+
+Notes d'intégration :
+- L'**embedder** est injectable (`set_embedder(...)`) : c'est ce qui permet
+  aux tests de tourner sans réseau, et c'est aussi utile si vous voulez
+  changer de modèle plus tard.
+- Le **stockage** est ici FAISS (« ou équivalent » selon la spec), persistable
+  sur disque via `store.save(dir)` / `FaissVectorStore.load(dir)`. Le diagramme
+  mentionne MongoDB Vector Search comme alternative : il suffirait de fournir
+  une autre implémentation respectant la même interface `add/search`.
+- Le **modèle** all-MiniLM-L6-v2 est téléchargé depuis HuggingFace au premier
+  usage (prévoir un accès réseau au premier lancement ; ensuite il est mis en
+  cache localement).
+
+

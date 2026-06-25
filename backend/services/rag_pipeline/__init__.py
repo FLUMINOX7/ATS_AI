@@ -1,19 +1,40 @@
 """
-«component» RAG Pipeline (cf. diagramme, package BACKEND).
+«component» RAG Pipeline (cf. diagramme, package BACKEND) — implémenté.
 
-Pipeline partagé par l'ATS IA Engine et le Chatbot LLM. À implémenter en
-Phase 6 :
-- extraction de texte depuis le PDF CV (PDF CV Upload -> Extraction Texte)
-- découpage en chunks (Chunking)
-- génération des embeddings (Embeddings)
-- stockage des vecteurs sur MongoDB Atlas Vector Search (Stockage vecteurs)
-- recherche par similarité, réutilisée par ats_engine et chatbot
+Pipeline conforme à la spec :
+  Étape 1  extraction.py     CV PDF -> texte (PyMuPDF)
+  Étape 2  chunking.py       texte -> chunks par section (regex de titres)
+  Étape 3  embeddings.py     chunk -> vecteur (sentence-transformers/all-MiniLM-L6-v2)
+  Étape 4  vector_store.py   stockage {id candidat, section_type, vecteur} dans FAISS
 
-Signatures prévues (non implémentées) :
+Orchestration : pipeline.py (index_cv, similarity_search).
+Le ranking final par candidat est dans services/ats_engine.
 
-    def extract_text(pdf_bytes: bytes) -> str: ...
-    def chunk_text(text: str, chunk_size: int = 500, overlap: int = 50) -> list[str]: ...
-    def embed_chunks(chunks: list[str]) -> list[list[float]]: ...
-    def store_embeddings(source_type: str, source_id: str, chunks: list[str], vectors: list[list[float]]) -> None: ...
-    def similarity_search(query: str, top_k: int = 5, source_type: str | None = None) -> list[dict]: ...
+API publique :
+    from services.rag_pipeline import (
+        extract_text_from_pdf, extract_text_from_path,
+        chunk_cv, Chunk,
+        get_embedder, set_embedder, SentenceTransformerEmbedder,
+        FaissVectorStore,
+        index_cv, similarity_search,
+    )
 """
+
+from .chunking import Chunk, chunk_cv
+from .embeddings import SentenceTransformerEmbedder, get_embedder, set_embedder
+from .extraction import extract_text_from_path, extract_text_from_pdf
+from .pipeline import index_cv, similarity_search
+from .vector_store import FaissVectorStore
+
+__all__ = [
+    "extract_text_from_pdf",
+    "extract_text_from_path",
+    "chunk_cv",
+    "Chunk",
+    "get_embedder",
+    "set_embedder",
+    "SentenceTransformerEmbedder",
+    "FaissVectorStore",
+    "index_cv",
+    "similarity_search",
+]

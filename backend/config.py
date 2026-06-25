@@ -49,6 +49,16 @@ class Config:
     LLM_CHAT_MODEL = os.getenv("LLM_CHAT_MODEL", "gpt-4o-mini")
     LLM_EMBEDDING_MODEL = os.getenv("LLM_EMBEDDING_MODEL", "text-embedding-3-small")
 
+    # --- Pipeline IA (RAG) -------------------------------------------------
+    # Modèle d'embedding local (sentence-transformers), conformément à la spec.
+    # all-MiniLM-L6-v2 -> vecteurs de dimension 384.
+    RAG_EMBEDDING_MODEL = os.getenv("RAG_EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
+    RAG_EMBEDDING_DIM = int(os.getenv("RAG_EMBEDDING_DIM", "384"))
+    # Stockage des vecteurs : index FAISS persisté sur disque (ou « équivalent »).
+    FAISS_INDEX_DIR = os.getenv("FAISS_INDEX_DIR", "data/faiss")
+    # Découpage : au-delà de cette taille, une section est sous-découpée.
+    RAG_MAX_CHUNK_CHARS = int(os.getenv("RAG_MAX_CHUNK_CHARS", "700"))
+
     # --- CORS ---------------------------------------------------------------
     # Origine(s) autorisée(s) à appeler cette API (le frontend Streamlit).
     CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:8501").split(",")

@@ -7,8 +7,11 @@ python-dotenv==1.0.1
 pydantic==2.8.2
 email-validator==2.2.0
 
-# Extraction PDF / chunking (Phase 6 - RAG Pipeline)
-pdfplumber==0.11.4
+# Pipeline IA (RAG Pipeline + ATS IA Engine)
+pymupdf==1.27.2          # Étape 1 : extraction texte des CV
+sentence-transformers==3.0.1  # Étape 3 : embeddings all-MiniLM-L6-v2
+faiss-cpu==1.8.0         # Étape 4 : stockage / recherche vectorielle
+numpy==1.26.4
 
 # Dev / tests
 pytest==8.3.2
